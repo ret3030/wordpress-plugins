@@ -7,7 +7,7 @@ Vlastní WordPress pluginy. Každý plugin má svou větev se soubory v kořeni,
 | `velrion-backup` | Velrion Backup | 2.0.2 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-backup.zip) | Záloha celého webu s týdenním cronem, kontrolou integrity a obnovou na jiný web. |
 | `velrion-snippets` | Velrion Snippets | 1.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-snippets.zip) | Správa PHP, CSS, JS a HTML snippetů na jednom místě. |
 | `velrion-dpd-pickup` | Velrion DPD Pickup | 1.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-dpd-pickup.zip) | Výběr výdejního místa nebo boxu DPD (včetně AlzaBoxů) v pokladně. |
-| `velrion-admin` | Velrion Admin | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-admin.zip) | Jednoduché menu pro administrátory s přepínačem na celé menu. |
+| `velrion-admin` | Velrion Admin | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-admin.zip) | Jednoduché menu pro administrátory bez nástěnky, s přepínačem na celé menu. |
 | `velrion-shop-manager` | Velrion Shop Manager | 1.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-shop-manager.zip) | Zjednodušená administrace pro správce obchodu, nahrazuje Adminimize a User Role Editor. |
 | `epoxis-faq` | Epoxis FAQ | 1.0.1 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-faq.zip) | FAQ pro epoxis.cz. |
 | `epoxis-gravirovani` | Epoxis gravírování | 1.2.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-gravirovani.zip) | Volitelné gravírování u vybraných produktů na epoxis.cz. |
