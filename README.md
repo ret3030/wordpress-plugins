@@ -10,7 +10,7 @@ Skrytí používá parametr widgetu `excludeLockerProvider=ZBox`. V dokumentaci 
 
 ## Co dělá
 
-- Pod sazbou DPD Pickup v pokladně ukáže tlačítko „Vybrat výdejní místo“, které otevře mapu DPD v jazyce webu a v zemi doručení.
+- Po zvolení DPD Pickup přidá pod způsoby dopravy řádek s logem a tlačítkem „Vyberte místo vyzvednutí“, rozvržením stejný jako u Zásilkovny, takže přebírá styly šablony. Tlačítko otevře mapu DPD v jazyce webu a v zemi doručení, vybrané místo se ukáže tučně pod ním.
 - Bez vybraného místa nejde objednávku odeslat.
 - Vybrané místo se uloží k objednávce (`_velrion_dpd_point_id`, `_velrion_dpd_point`) a ukáže se v administraci, v e-mailech, na děkovací stránce i v účtu zákazníka.
 

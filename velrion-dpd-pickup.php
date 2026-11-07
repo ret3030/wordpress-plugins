@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Velrion DPD Pickup
  * Description:       Doprava DPD Pickup: zákazník si v pokladně vybere výdejní místo nebo box DPD (včetně AlzaBoxů) na mapě DPD.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VELRION_DPD_METHOD = 'velrion_dpd_pickup';
-const VELRION_DPD_VERSION = '1.1.0';
+const VELRION_DPD_VERSION = '1.2.0';
 const VELRION_DPD_WIDGET = 'https://api.dpd.cz/widget/latest/index.html';
 /** Jazyky, které widget DPD umí; ostatní dostanou angličtinu. */
 const VELRION_DPD_LANGS = array( 'bg', 'cs', 'de', 'en', 'es', 'el', 'et', 'fr', 'hr', 'hu', 'it', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv' );
@@ -117,45 +117,47 @@ add_action(
 			array(
 				'widgetUrl' => VELRION_DPD_WIDGET,
 				'lang'      => in_array( $lang, VELRION_DPD_LANGS, true ) ? $lang : 'en',
-				'choose'    => 'Vybrat výdejní místo',
-				'change'    => 'Změnit výdejní místo',
-				'none'      => 'Výdejní místo zatím není vybrané.',
+				'choose'    => 'Vyberte místo vyzvednutí',
+				'change'    => 'Změnit místo vyzvednutí',
 			)
 		);
 	}
 );
 
 /**
- * Tlačítko pod sazbou DPD Pickup. Tabulka dopravy se při každé změně v pokladně
- * překresluje přes AJAX, proto vybrané místo drží skrytá pole mimo ni.
+ * Řádek s logem a tlačítkem pod způsoby dopravy, stejně jako u Zásilkovny (tr > th logo + td tlačítko),
+ * aby převzal styly šablony. Tabulka se při každé změně v pokladně překresluje přes AJAX,
+ * proto vybrané místo drží skrytá pole mimo ni.
  */
 add_action(
-	'woocommerce_after_shipping_rate',
-	function ( $rate, $index ) {
-		if ( ! is_checkout() || VELRION_DPD_METHOD !== $rate->get_method_id() ) {
-			return;
-		}
+	'woocommerce_review_order_after_shipping',
+	function () {
 		$chosen = WC()->session ? (array) WC()->session->get( 'chosen_shipping_methods' ) : array();
-		if ( ( $chosen[ $index ] ?? '' ) !== $rate->get_id() ) {
+		$rate   = current( array_filter( $chosen, fn( $id ) => 0 === strpos( (string) $id, VELRION_DPD_METHOD . ':' ) ) );
+		if ( ! $rate ) {
 			return;
 		}
 		// Hodnota pro nezdokumentovaný, ale funkční parametr widgetu excludeLockerProvider.
-		$method  = WC_Shipping_Zones::get_shipping_method( $rate->get_instance_id() );
+		$method  = WC_Shipping_Zones::get_shipping_method( (int) substr( $rate, strlen( VELRION_DPD_METHOD ) + 1 ) );
 		$exclude = $method && 'yes' === $method->get_option( 'hide_zbox', 'yes' ) ? 'ZBox' : '';
-		printf(
-			'<div class="velrion-dpd-pickup"><span class="velrion-dpd-selected"></span><button type="button" class="button velrion-dpd-choose" data-exclude="%s"></button></div>',
-			esc_attr( $exclude )
-		);
-	},
-	10,
-	2
+		?>
+		<tr class="velrion-dpd-row">
+			<th><img class="velrion-dpd-logo" src="<?php echo esc_url( plugin_dir_url( __FILE__ ) . 'assets/dpd-pickup.svg' ); ?>" alt="DPD Pickup"></th>
+			<td>
+				<button type="button" class="button alt velrion-dpd-choose" data-exclude="<?php echo esc_attr( $exclude ); ?>"></button>
+				<p class="velrion-dpd-selected"></p>
+			</td>
+		</tr>
+		<?php
+	}
 );
 
 add_action(
 	'woocommerce_checkout_after_customer_details',
 	function () {
-		echo '<input type="hidden" id="velrion_dpd_point_id" name="velrion_dpd_point_id" value="">';
-		echo '<input type="hidden" id="velrion_dpd_point_label" name="velrion_dpd_point_label" value="">';
+		foreach ( array( 'id', 'name', 'address' ) as $field ) {
+			printf( '<input type="hidden" id="velrion_dpd_point_%1$s" name="velrion_dpd_point_%1$s" value="">', esc_attr( $field ) );
+		}
 	}
 );
 
@@ -179,7 +181,9 @@ add_action(
 		}
 		// phpcs:disable WordPress.Security.NonceVerification
 		$order->update_meta_data( '_velrion_dpd_point_id', sanitize_text_field( wp_unslash( $_POST['velrion_dpd_point_id'] ?? '' ) ) );
-		$order->update_meta_data( '_velrion_dpd_point', sanitize_text_field( wp_unslash( $_POST['velrion_dpd_point_label'] ?? '' ) ) );
+		$name    = sanitize_text_field( wp_unslash( $_POST['velrion_dpd_point_name'] ?? '' ) );
+		$address = sanitize_text_field( wp_unslash( $_POST['velrion_dpd_point_address'] ?? '' ) );
+		$order->update_meta_data( '_velrion_dpd_point', implode( ', ', array_filter( array( $name, $address ) ) ) );
 		// phpcs:enable
 	},
 	10,

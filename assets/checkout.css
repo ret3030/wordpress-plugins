@@ -1,13 +1,23 @@
-.velrion-dpd-pickup {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	margin-top: 8px;
+/* Řádek pod způsoby dopravy, rozvržením stejný jako u Zásilkovny (packeta/public/css/front.css). */
+.velrion-dpd-row th,
+.velrion-dpd-row td {
+	vertical-align: top;
 }
 
-.velrion-dpd-selected {
-	font-size: 0.9em;
+.velrion-dpd-row .velrion-dpd-logo {
+	display: block;
+	width: 45px;
+	height: 45px;
+	margin-left: auto;
+}
+
+.velrion-dpd-row .velrion-dpd-selected {
+	margin: 8px 0 0;
+	font-weight: 600;
+}
+
+.velrion-dpd-row .velrion-dpd-selected:empty {
+	display: none;
 }
 
 .velrion-dpd-overlay {

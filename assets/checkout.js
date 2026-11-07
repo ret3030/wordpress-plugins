@@ -35,11 +35,14 @@
 		}
 	}
 
-	// Tabulka dopravy se překresluje, text tlačítka se proto bere vždy ze skrytých polí.
+	// Řádek s tlačítkem se překresluje s tabulkou dopravy, obsah se proto bere vždy ze skrytých polí.
 	function render() {
-		const label = $( '#velrion_dpd_point_label' ).val();
-		$( '.velrion-dpd-selected' ).text( label || config.none );
-		$( '.velrion-dpd-choose' ).text( label ? config.change : config.choose );
+		const name = $( '#velrion_dpd_point_name' ).val();
+		const selected = $( '.velrion-dpd-selected' ).empty();
+		if ( name ) {
+			selected.append( $( '<span>' ).text( name ), '<br>', $( '<span>' ).text( $( '#velrion_dpd_point_address' ).val() ) );
+		}
+		$( '.velrion-dpd-choose' ).text( name ? config.change : config.choose );
 	}
 
 	// Widget posílá vybrané místo jako { dpdWidget: { id, name, location: { address } } },
@@ -51,9 +54,9 @@
 		const point = event.data.dpdWidget;
 		if ( point.id ) {
 			const address = point.location && point.location.address;
-			const place = address ? ', ' + address.street + ', ' + address.zip + ' ' + address.city : '';
 			$( '#velrion_dpd_point_id' ).val( point.id );
-			$( '#velrion_dpd_point_label' ).val( point.name + place );
+			$( '#velrion_dpd_point_name' ).val( point.name );
+			$( '#velrion_dpd_point_address' ).val( address ? address.street + ', ' + address.zip + ' ' + address.city : '' );
 			render();
 		}
 		closeWidget();
