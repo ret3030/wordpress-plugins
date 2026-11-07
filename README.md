@@ -13,7 +13,7 @@ Vlastní WordPress pluginy. Každý plugin má svou větev se soubory v kořeni,
 | `velrion-shop-manager` | Velrion Shop Manager | 1.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-shop-manager.zip) | Zjednodušená administrace pro správce obchodu, nahrazuje Adminimize a User Role Editor. |
 | `epoxis-faq` | Epoxis FAQ | 1.0.1 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-faq.zip) | FAQ pro epoxis.cz. |
 | `epoxis-gravirovani` | Epoxis gravírování | 1.2.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-gravirovani.zip) | Volitelné gravírování u vybraných produktů na epoxis.cz. |
-| `custom-gallery` | Redakční galerie | 1.0.1 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/custom-gallery.zip) | Widget galerie pro Elementor, obsah se spravuje v Média → Galerie. |
+| `custom-gallery` | Redakční galerie | 1.0.2 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/custom-gallery.zip) | Widget galerie pro Elementor, obsah se spravuje v Média → Galerie. |
 
 ## Instalace
 
