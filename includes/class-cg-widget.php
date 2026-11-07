@@ -29,6 +29,10 @@ class CG_Widget extends \Elementor\Widget_Base {
 		return array( 'galerie', 'gallery', 'lampy', 'reference', 'obrázky' );
 	}
 
+	public function get_style_depends() {
+		return array( 'cg-gallery' );
+	}
+
 	protected function register_controls() {
 
 		/* ================= Obsah ================= */
@@ -414,6 +418,9 @@ class CG_Widget extends \Elementor\Widget_Base {
 			}
 			return;
 		}
+
+		// Všechny fotky galerie jedním dotazem do cache, jinak se název a popisek načítají po jedné.
+		_prime_post_caches( $ids, false ); // bez kategorií, metadata (rozměry, alt) ano
 
 		$source   = isset( $settings['caption_source'] ) ? $settings['caption_source'] : '';
 		$position = isset( $settings['caption_position'] ) ? $settings['caption_position'] : 'below';
