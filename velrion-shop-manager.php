@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Velrion Shop Manager
  * Description:       Zjednodušená administrace pro roli Správce obchodu: jen produkty, média, objednávky a překlad. Nahrazuje Adminimize a User Role Editor.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -36,15 +36,15 @@ const VELRION_SM_REMOVE_CAPS = array(
 const VELRION_SM_ADD_CAPS = array( 'translate_strings' );
 
 /**
- * Povolené položky menu: hlavní položka => povolené podpoložky (null = všechny).
- * Položka „Překlad webu“ od TranslatePress se doplní za běhu, má v názvu adresu webu.
+ * Povolené položky menu v pořadí, v jakém se zobrazí: hlavní položka => povolené podpoložky (null = všechny).
+ * Položka „Překlad webu“ od TranslatePress se doplní za běhu na konec, má v názvu adresu webu.
  */
 const VELRION_SM_MENU = array(
 	'edit.php?post_type=product' => null,
-	'upload.php'                 => null,
 	'woocommerce'                => array( 'wc-orders', 'edit.php?post_type=shop_order' ),
-	'woocommerce-marketing'      => array( 'edit.php?post_type=shop_coupon' ),
+	'upload.php'                 => null,
 	'edit.php?post_type=epx_faq' => null,
+	'woocommerce-marketing'      => array( 'edit.php?post_type=shop_coupon' ),
 	'profile.php'                => null,
 );
 
@@ -139,6 +139,42 @@ add_action(
 		}
 	},
 	PHP_INT_MAX
+);
+
+add_filter(
+	'custom_menu_order',
+	function ( $custom ) {
+		return velrion_sm_is_restricted() ? true : $custom;
+	}
+);
+
+// Až po WooCommerce, který v tomto filtru přesouvá Produkty za svou položku.
+add_filter(
+	'menu_order',
+	function ( $order ) {
+		if ( ! velrion_sm_is_restricted() ) {
+			return $order;
+		}
+		$rank = array_flip( array_keys( VELRION_SM_MENU ) );
+		usort(
+			$order,
+			function ( $a, $b ) use ( $rank ) {
+				return ( $rank[ $a ] ?? PHP_INT_MAX ) <=> ( $rank[ $b ] ?? PHP_INT_MAX );
+			}
+		);
+		return $order;
+	},
+	PHP_INT_MAX
+);
+
+/** Hláška o nové verzi WordPressu: aktualizuje administrátor, správce obchodu s ní nic neudělá. */
+add_action(
+	'admin_init',
+	function () {
+		if ( velrion_sm_is_restricted() ) {
+			remove_action( 'admin_notices', 'update_nag', 3 );
+		}
+	}
 );
 
 add_action(
