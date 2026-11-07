@@ -6,7 +6,8 @@ Vlastní WordPress pluginy. Každý plugin má svou větev se soubory v kořeni,
 |-------|--------|-------|-----|-------|
 | `velrion-backup` | Velrion Backup | 2.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-backup.zip) | Záloha celého webu s týdenním cronem, kontrolou integrity a obnovou na jiný web. Volitelný počet uchovávaných záloh (1 až 5) a záloha jen médií. |
 | `velrion-cache` | Velrion Cache | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-cache.zip) | Mazání serverové cache SiteGroundu po změně obsahu a skladu, náhrada Speed Optimizeru. |
-| `velrion-images` | Velrion Images | 1.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-images.zip) | Optimalizace fotek při nahrání: zmenšení, JPEG/WebP, bez originálu v plné velikosti. |
+| `velrion-images` | Velrion Images | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-images.zip) | Optimalizace fotek při nahrání: zmenšení, JPEG/WebP, bez originálu v plné velikosti. |
+| `velrion-images-bulk` | Velrion Images Bulk | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-images-bulk.zip) | Jednorázová optimalizace stávající knihovny médií se zálohou a návratem, po použití smazat. |
 | `velrion-snippets` | Velrion Snippets | 1.1.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-snippets.zip) | Správa PHP, CSS, JS a HTML snippetů na jednom místě. |
 | `velrion-dpd-pickup` | Velrion DPD Pickup | 1.2.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-dpd-pickup.zip) | Výběr výdejního místa nebo boxu DPD (včetně AlzaBoxů) v pokladně. |
 | `velrion-admin` | Velrion Admin | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/velrion-admin.zip) | Jednoduché menu pro administrátory bez nástěnky, s přepínačem na celé menu. |
