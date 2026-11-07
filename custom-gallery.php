@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Redakční galerie pro Elementor
  * Description:       Elementor widget, jehož obsah spravují redaktoři v Média → Galerie (mimo Elementor editor).
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            —
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CG_VERSION', '1.0.1' );
+define( 'CG_VERSION', '1.0.2' );
 define( 'CG_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CG_URL', plugin_dir_url( __FILE__ ) );
 define( 'CG_OPTION', 'cg_galleries' );
