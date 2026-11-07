@@ -12,7 +12,20 @@ Optimalizace fotek přímo při nahrání do knihovny médií. Obecný plugin pr
 - WordPress nevytváří kopii `-scaled`.
 - EXIF (poloha, fotoaparát) odstraňuje Imagick při zmenšení, tedy u všech fotek z telefonu. U fotek menších než limit zůstane.
 
-Platí jen pro nově nahrané fotky. Stávající knihovna se nemění.
+Platí pro nově nahrané fotky. Stávající knihovnu zpracuje hromadná optimalizace níže.
+
+## Hromadná optimalizace stávající knihovny
+
+**Média → Optimalizovat knihovnu.** U každé fotky (JPEG, PNG, WebP):
+
+1. smaže originál v plné velikosti, který WordPress drží vedle verze `-scaled` a web ho nezobrazuje, a odebere ho z metadat,
+2. hlavní soubor zmenší na nastavený limit a překóduje (natočení z EXIF se před tím zapeče do pixelů),
+3. překóduje zmenšeniny,
+4. smaže kopie `foto.jpg.webp` po dřívějších optimalizačních pluginech.
+
+**Názvy, adresy a formáty souborů zůstávají**, takže odkazy v obsahu, Elementoru i katalogu Meta platí dál. Soubor se nahradí jen tehdy, když je nový menší. Běží po 5 fotkách přes AJAX (stránka musí zůstat otevřená), hotové fotky se označí a při dalším spuštění přeskočí. **Nevratné: nejdřív zálohovat média.**
+
+Test na kopii skutečné složky epoxis.cz (2025/03, 27 fotek): 128 MB → 48 MB za 4 s, kvalita při 100% zvětšení beze změny.
 
 ## Nastavení
 
