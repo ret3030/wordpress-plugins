@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Velrion Snippets
  * Description:       Lehká správa vlastního kódu na jednom místě: PHP, CSS, JS a HTML snippety s přepínačem zapnuto/vypnuto.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Text Domain:       velrion-snippets
@@ -56,21 +56,8 @@ const VELRION_HOOKS = array(
 	),
 );
 
-/** Mapování oblastí pluginu Code Snippets pro import. */
-const VELRION_CODE_SNIPPETS_SCOPES = array(
-	'global'         => array( 'php', 'everywhere' ),
-	'front-end'      => array( 'php', 'frontend' ),
-	'admin'          => array( 'php', 'admin' ),
-	'site-css'       => array( 'css', 'frontend' ),
-	'admin-css'      => array( 'css', 'admin' ),
-	'site-head-js'   => array( 'js', 'head' ),
-	'site-footer-js' => array( 'js', 'footer' ),
-	'head-content'   => array( 'html', 'head' ),
-	'footer-content' => array( 'html', 'footer' ),
-);
-
 /**
- * Snippety jako pole id => [title, type, place, priority, active, code, source].
+ * Snippety jako pole id => [title, type, place, priority, active, code].
  * Jedna autoload volba: celý seznam je jeden dotaz, který WordPress stejně načítá při startu.
  */
 function velrion_snippets(): array {
@@ -80,21 +67,6 @@ function velrion_snippets(): array {
 
 function velrion_save_snippets( array $snippets ): void {
 	update_option( VELRION_OPTION, $snippets, true );
-}
-
-/**
- * Importovaný snippet čeká, dokud běží plugin, ze kterého pochází,
- * jinak by se stejný kód spustil dvakrát (u PHP s fatální chybou).
- */
-function velrion_waits_for_legacy( array $snippet ): bool {
-	$source = $snippet['source'] ?? '';
-	if ( 0 === strpos( $source, 'code-snippets:' ) ) {
-		return defined( 'CODE_SNIPPETS_VERSION' );
-	}
-	if ( 0 === strpos( $source, 'custom-css-js:' ) ) {
-		return class_exists( 'CustomCSSandJS' );
-	}
-	return false;
 }
 
 function velrion_deactivate( int $id, string $message ): void {
@@ -129,7 +101,7 @@ function velrion_boot(): void {
 	$snippets = array_filter(
 		velrion_snippets(),
 		function ( $snippet ) {
-			return ! empty( $snippet['active'] ) && ! velrion_waits_for_legacy( $snippet );
+			return ! empty( $snippet['active'] );
 		}
 	);
 	uasort(
@@ -217,7 +189,6 @@ add_action(
 add_action( 'admin_post_velrion_save', 'velrion_handle_save' );
 add_action( 'admin_post_velrion_toggle', 'velrion_handle_toggle' );
 add_action( 'admin_post_velrion_delete', 'velrion_handle_delete' );
-add_action( 'admin_post_velrion_import', 'velrion_handle_import' );
 
 add_action(
 	'admin_notices',
@@ -292,7 +263,6 @@ function velrion_handle_save(): void {
 		'priority' => (int) ( $_POST['priority'] ?? 10 ),
 		'active'   => $active,
 		'code'     => $code,
-		'source'   => $snippets[ $id ]['source'] ?? '',
 	);
 	velrion_save_snippets( $snippets );
 	velrion_clear_error( $id );
@@ -332,83 +302,6 @@ function velrion_handle_delete(): void {
 	velrion_save_snippets( $snippets );
 	velrion_clear_error( $id );
 
-	wp_safe_redirect( velrion_url() );
-	exit;
-}
-
-/**
- * Převezme snippety z pluginů Code Snippets a Simple Custom CSS and JS i se stavem
- * zapnuto/vypnuto. Spouštět se začnou až po deaktivaci původního pluginu.
- */
-function velrion_handle_import(): void {
-	velrion_check_request( 'velrion_import' );
-	global $wpdb;
-
-	$found = array();
-
-	$table = $wpdb->prefix . 'snippets';
-	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
-		$rows = $wpdb->get_results( "SELECT id, name, code, scope, priority, active FROM {$table}", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL
-		foreach ( $rows as $row ) {
-			if ( ! isset( VELRION_CODE_SNIPPETS_SCOPES[ $row['scope'] ] ) ) {
-				continue; // Shortcody a jednorázové snippety nemají v tomto pluginu obdobu.
-			}
-			list( $type, $place ) = VELRION_CODE_SNIPPETS_SCOPES[ $row['scope'] ];
-			$found[]              = array( 'code-snippets:' . $row['id'], $row['name'], $type, $place, (int) $row['priority'], $row['code'], (bool) $row['active'] );
-		}
-	}
-
-	$posts = get_posts(
-		array(
-			'post_type'   => 'custom-css-js',
-			'post_status' => array( 'publish', 'draft', 'private' ),
-			'numberposts' => -1,
-		)
-	);
-	foreach ( $posts as $post ) {
-		$options = (array) get_post_meta( $post->ID, 'options', true );
-		$type    = $options['language'] ?? '';
-		$admin   = false !== strpos( $options['side'] ?? '', 'admin' ) && false === strpos( $options['side'] ?? '', 'frontend' );
-		$footer  = 'footer' === ( $options['type'] ?? '' );
-		if ( 'css' === $type ) {
-			$place = $admin ? 'admin' : 'frontend';
-		} elseif ( 'js' === $type ) {
-			$place = $admin ? 'admin' : ( $footer ? 'footer' : 'head' );
-		} elseif ( 'html' === $type ) {
-			$place = $footer ? 'footer' : 'head';
-		} else {
-			continue;
-		}
-		$active  = 'publish' === $post->post_status && 'no' !== get_post_meta( $post->ID, '_active', true );
-		$found[] = array( 'custom-css-js:' . $post->ID, $post->post_title, $type, $place, (int) ( $options['priority'] ?? 10 ), $post->post_content, $active );
-	}
-
-	$snippets = velrion_snippets();
-	$known    = array_column( $snippets, 'source' );
-	$next     = $snippets ? max( array_keys( $snippets ) ) + 1 : 1;
-	$imported = 0;
-	foreach ( $found as list( $source, $title, $type, $place, $priority, $code, $active ) ) {
-		if ( in_array( $source, $known, true ) ) {
-			continue;
-		}
-		$code = trim( $code );
-		if ( $active && 'php' === $type && velrion_php_syntax_error( $code ) ) {
-			$active = false;
-		}
-		$snippets[ $next++ ] = array(
-			'title'    => $title ?: 'Bez názvu',
-			'type'     => $type,
-			'place'    => $place,
-			'priority' => $priority,
-			'active'   => $active,
-			'code'     => $code,
-			'source'   => $source,
-		);
-		++$imported;
-	}
-	velrion_save_snippets( $snippets );
-
-	velrion_flash( sprintf( 'Importováno snippetů: %d. Zapnuté se začnou spouštět, jakmile deaktivuješ původní plugin.', $imported ) );
 	wp_safe_redirect( velrion_url() );
 	exit;
 }
@@ -481,9 +374,6 @@ function velrion_render_list(): void {
 				<td><?php velrion_post_button( 'velrion_toggle', $id, $snippet['active'] ? 'Zapnuto' : 'Vypnuto', $snippet['active'] ? 'button button-primary button-small' : 'button button-small' ); ?></td>
 				<td>
 					<strong><a href="<?php echo esc_url( velrion_url( array( 'edit' => $id ) ) ); ?>"><?php echo esc_html( $snippet['title'] ); ?></a></strong>
-					<?php if ( $snippet['active'] && velrion_waits_for_legacy( $snippet ) ) : ?>
-						<br><small>Čeká: poběží po deaktivaci původního pluginu.</small>
-					<?php endif; ?>
 				</td>
 				<td><code><?php echo esc_html( strtoupper( $snippet['type'] ) ); ?></code></td>
 				<td><?php echo esc_html( VELRION_PLACES[ $snippet['type'] ][ $snippet['place'] ] ?? $snippet['place'] ); ?></td>
@@ -497,9 +387,6 @@ function velrion_render_list(): void {
 		</tbody>
 	</table>
 
-	<p style="margin-top:2em">
-		<?php velrion_post_button( 'velrion_import', 0, 'Importovat z Code Snippets a Vlastní CSS & JS', 'button' ); ?>
-	</p>
 	<p class="description">Při fatální chybě PHP snippetu se snippet sám vypne. Kdyby web přesto nešel načíst, přidej do wp-config.php řádek <code>define( 'VELRION_SAFE_MODE', true );</code>.</p>
 	<?php
 }
