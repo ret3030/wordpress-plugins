@@ -1,0 +1,91 @@
+/**
+ * Epoxis FAQ: frontend.
+ *
+ * Barvy a písmo se dědí ze šablony, takže widget sedí na světlé i tmavé sekci.
+ * Linka a šipka se odvozují z barvy textu; v Elementoru jdou přenastavit.
+ */
+
+.epx-faq {
+	--epx-faq-line: color-mix(in srgb, currentColor 16%, transparent);
+	--epx-faq-icon: currentColor;
+}
+
+.epx-faq__group {
+	margin: 2em 0 0.4em;
+}
+
+.epx-faq__group:first-child {
+	margin-top: 0;
+}
+
+.epx-faq__item {
+	border-bottom: 1px solid var(--epx-faq-line);
+}
+
+.epx-faq__q {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1em;
+	padding: 1.1em 0;
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+	list-style: none;
+}
+
+/* Safari si drží vlastní trojúhelník mimo list-style. */
+.epx-faq__q::-webkit-details-marker {
+	display: none;
+}
+
+/* Šipka dolů, po otevření nahoru. */
+.epx-faq__q::after {
+	content: "";
+	flex: none;
+	width: 0.55em;
+	height: 0.55em;
+	/* Otočený čtverec je širší než jeho box; bez okraje by šipka přečnívala přes pravý kraj. */
+	margin-right: 0.2em;
+	border-right: 2px solid var(--epx-faq-icon);
+	border-bottom: 2px solid var(--epx-faq-icon);
+	transform: translateY(-25%) rotate(45deg);
+	transition: transform 0.25s ease;
+}
+
+.epx-faq__item[open] > .epx-faq__q::after {
+	transform: translateY(25%) rotate(-135deg);
+}
+
+.epx-faq__q:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 4px;
+}
+
+.epx-faq__a {
+	padding-bottom: 1.2em;
+}
+
+.epx-faq__a > :first-child {
+	margin-top: 0;
+}
+
+.epx-faq__a > :last-child {
+	margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.epx-faq__q::after {
+		transition: none;
+	}
+}
+
+/* Prázdný stav v editoru */
+
+.epx-faq-notice {
+	padding: 16px 18px;
+	border: 1px dashed currentColor;
+	border-radius: 4px;
+	opacity: 0.7;
+	font-size: 14px;
+}
