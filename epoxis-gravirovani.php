@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Epoxis gravírování
  * Description:       Volitelné gravírování u vybraných produktů: zákazník zadá text a styl písma, cena se připočte k položce.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EPX_ENGR_VERSION', '1.1.0' );
+define( 'EPX_ENGR_VERSION', '1.2.0' );
 define( 'EPX_ENGR_URL', plugin_dir_url( __FILE__ ) );
 
 /**
@@ -44,7 +44,22 @@ function epx_engr_max_length() {
 }
 
 /**
- * Gravírování se nabízí u lamp z vybraných kategorií a navíc u jednotlivě zaškrtnutých produktů.
+ * Volba u produktu: "" podle kategorie, "yes" vždy nabízet, "never" nikdy (výjimka z kategorie).
+ * Starší hodnota "no" znamená totéž co "".
+ *
+ * @return array<string, string>
+ */
+function epx_engr_product_modes() {
+	return array(
+		''      => __( 'Podle kategorie', 'epoxis-gravirovani' ),
+		'yes'   => __( 'Vždy nabízet', 'epoxis-gravirovani' ),
+		'never' => __( 'Nenabízet (výjimka z kategorie)', 'epoxis-gravirovani' ),
+	);
+}
+
+/**
+ * Gravírování se nabízí u lamp z vybraných kategorií, pokud je produkt nevyřadí,
+ * a navíc u produktů s volbou „Vždy nabízet“.
  *
  * @param WC_Product|null $product Produkt (u varianty se rozhoduje podle nadřazeného produktu).
  * @return bool
@@ -54,12 +69,13 @@ function epx_engr_enabled( $product ) {
 		return false;
 	}
 
-	if ( 'yes' === $product->get_meta( '_epx_engraving' ) ) {
-		return true;
+	$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+	$mode       = get_post_meta( $product_id, '_epx_engraving', true );
+	if ( 'yes' === $mode || 'never' === $mode ) {
+		return 'yes' === $mode;
 	}
 
 	$categories = array_map( 'absint', (array) get_option( 'epx_engr_categories', array() ) );
-	$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
 
 	return $categories && has_term( $categories, 'product_cat', $product_id );
 }
@@ -109,7 +125,7 @@ add_filter(
 				'type'  => 'title',
 				'id'    => 'epx_engr_options',
 				'title' => __( 'Gravírování', 'epoxis-gravirovani' ),
-				'desc'  => __( 'Gravírování se nabízí u všech lamp z vybraných kategorií. Jednotlivé lampy mimo ně zapnete v Produkty → Upravit produkt → Obecné → Gravírování.', 'epoxis-gravirovani' ),
+				'desc'  => __( 'Gravírování se nabízí u všech lamp z vybraných kategorií. U jednotlivé lampy to změníte v Produkty → Upravit produkt → Obecné → Gravírování: „Vždy nabízet“ ji přidá, „Nenabízet“ ji vyřadí.', 'epoxis-gravirovani' ),
 			),
 			array(
 				'type'    => 'multiselect',
@@ -154,13 +170,15 @@ add_action(
 	'woocommerce_product_options_general_product_data',
 	function () {
 		echo '<div class="options_group">';
-		woocommerce_wp_checkbox(
+		woocommerce_wp_select(
 			array(
 				'id'          => '_epx_engraving',
 				'label'       => __( 'Gravírování', 'epoxis-gravirovani' ),
+				'options'     => epx_engr_product_modes(),
+				'desc_tip'    => true,
 				'description' => sprintf(
 					/* translators: %s: cena gravírování */
-					__( 'Nabízet gravírování textu za %s (u lamp z kategorií vybraných v nastavení gravírování se nabízí vždy)', 'epoxis-gravirovani' ),
+					__( 'Gravírování textu za %s. „Podle kategorie“ ho nabídne u lamp z kategorií vybraných v nastavení gravírování, „Nenabízet“ lampu z nich vyřadí.', 'epoxis-gravirovani' ),
 					wp_strip_all_tags( wc_price( epx_engr_price() ) )
 				),
 			)
@@ -173,7 +191,8 @@ add_action(
 	'woocommerce_admin_process_product_object',
 	function ( $product ) {
 		// Nonce ověřuje WooCommerce před tímto hookem.
-		$product->update_meta_data( '_epx_engraving', isset( $_POST['_epx_engraving'] ) ? 'yes' : 'no' ); // phpcs:ignore WordPress.Security.NonceVerification
+		$mode = sanitize_key( wp_unslash( $_POST['_epx_engraving'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$product->update_meta_data( '_epx_engraving', array_key_exists( $mode, epx_engr_product_modes() ) ? $mode : '' );
 	}
 );
 

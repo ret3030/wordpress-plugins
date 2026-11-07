@@ -18,7 +18,15 @@ Nahraj `epoxis-gravirovani.zip` v **Pluginy → Přidat nový → Nahrát plugin
 
 Gravírování se nabízí u všech lamp z vybraných kategorií, i u nově přidaných.
 
-**Výjimky:** lampu mimo vybrané kategorie zapneš v Produkty → Upravit produkt → Data produktu → Obecné → zaškrtnout **Gravírování**. Funguje u jednoduchých i variabilních produktů.
+**Výjimky:** v Produkty → Upravit produkt → Data produktu → Obecné → **Gravírování** jde u každé lampy zvolit:
+
+| Volba | Výsledek |
+|---|---|
+| Podle kategorie (výchozí) | gravírování, jen když je lampa ve vybrané kategorii |
+| Vždy nabízet | gravírování i u lampy mimo vybrané kategorie |
+| Nenabízet (výjimka z kategorie) | bez gravírování, i když je lampa ve vybrané kategorii |
+
+Funguje u jednoduchých i variabilních produktů (rozhoduje nastavení nadřazeného produktu).
 
 ## Co vidí zákazník
 
