@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Velrion Admin
- * Description:       Jednoduché menu pro administrátory: jen vybrané položky, přepínač na celé menu v horní liště a nástěnka bez widgetů pluginů.
+ * Description:       Jednoduché menu pro administrátory: jen vybrané položky, bez nástěnky a s přepínačem na celé menu v horní liště.
  * Version:           1.0.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -16,9 +16,8 @@ const VELRION_ADMIN_OPTION = 'velrion_admin_menu';
 const VELRION_ADMIN_FULL_META = 'velrion_admin_full_menu';
 const VELRION_ADMIN_PAGE = 'velrion-admin';
 
-/** Výchozí jednoduché menu pro e-shop; položky, které na webu nejsou, se ignorují. */
+/** Výchozí jednoduché menu pro e-shop; položky, které na webu nejsou, se ignorují. Nástěnka v něm není nikdy. */
 const VELRION_ADMIN_DEFAULT_MENU = array(
-	'index.php',
 	'edit.php?post_type=product',
 	'woocommerce',
 	'edit.php?post_type=page',
@@ -28,9 +27,6 @@ const VELRION_ADMIN_DEFAULT_MENU = array(
 	'options-general.php',
 	'velrion-snippets',
 );
-
-/** Widgety nástěnky, které v jednoduchém režimu zůstanou. */
-const VELRION_ADMIN_DASHBOARD = array( 'dashboard_site_health', 'dashboard_activity', 'woocommerce_dashboard_status' );
 
 function velrion_admin_simple_mode(): bool {
 	return current_user_can( 'manage_options' ) && ! get_user_meta( get_current_user_id(), VELRION_ADMIN_FULL_META, true );
@@ -70,24 +66,15 @@ add_action(
 	PHP_INT_MAX
 );
 
+/** Místo nástěnky rovnou práce: produkty na e-shopu, jinak stránky. */
 add_action(
-	'wp_dashboard_setup',
+	'load-index.php',
 	function () {
-		global $wp_meta_boxes;
-		if ( ! velrion_admin_simple_mode() || empty( $wp_meta_boxes['dashboard'] ) ) {
-			return;
+		if ( velrion_admin_simple_mode() ) {
+			wp_safe_redirect( admin_url( post_type_exists( 'product' ) ? 'edit.php?post_type=product' : 'edit.php?post_type=page' ) );
+			exit;
 		}
-		foreach ( $wp_meta_boxes['dashboard'] as $context => $priorities ) {
-			foreach ( $priorities as $priority => $boxes ) {
-				foreach ( array_keys( (array) $boxes ) as $id ) {
-					if ( ! in_array( $id, VELRION_ADMIN_DASHBOARD, true ) ) {
-						unset( $wp_meta_boxes['dashboard'][ $context ][ $priority ][ $id ] );
-					}
-				}
-			}
-		}
-	},
-	PHP_INT_MAX
+	}
 );
 
 /* ------------------------------------------------------------------ */
@@ -180,7 +167,7 @@ function velrion_admin_render_settings(): void {
 				foreach ( (array) $menu as $item ) :
 					$slug  = $item[2] ?? '';
 					$title = trim( wp_strip_all_tags( $item[0] ?? '' ) );
-					if ( '' === $title || 0 === strpos( $slug, 'separator' ) ) {
+					if ( '' === $title || 'index.php' === $slug || 0 === strpos( $slug, 'separator' ) ) {
 						continue;
 					}
 					?>
