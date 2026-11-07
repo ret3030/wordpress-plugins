@@ -14,7 +14,7 @@ class Velrion_Backup_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( 'Velrion_Backup', 'schedule_wp_cron' ) );
 
-		foreach ( array( 'save', 'create', 'verify', 'restore', 'delete', 'download', 'upload' ) as $action ) {
+		foreach ( array( 'save', 'create', 'create_media', 'verify', 'restore', 'delete', 'download', 'upload' ) as $action ) {
 			add_action( 'admin_post_velrion_backup_' . $action, array( __CLASS__, 'handle_' . $action ) );
 		}
 	}
@@ -56,6 +56,7 @@ class Velrion_Backup_Admin {
 			'weekday'          => isset( $_POST['weekday'] ) ? max( 0, min( 6, (int) $_POST['weekday'] ) ) : 0,
 			'hour'             => isset( $_POST['hour'] ) ? max( 0, min( 23, (int) $_POST['hour'] ) ) : 3,
 			'email_on_failure' => ! empty( $_POST['email_on_failure'] ),
+			'keep'             => isset( $_POST['keep'] ) ? max( 1, min( Velrion_Backup::KEEP_MAX, (int) $_POST['keep'] ) ) : 3,
 		);
 		update_option( Velrion_Backup::OPT_SETTINGS, $new );
 
@@ -75,6 +76,12 @@ class Velrion_Backup_Admin {
 	public static function handle_create() {
 		self::guard( 'create' );
 		$result = Velrion_Backup::create( 'manual' );
+		self::done( $result['ok'], $result['message'] );
+	}
+
+	public static function handle_create_media() {
+		self::guard( 'create_media' );
+		$result = Velrion_Backup::create( 'manual', 'media' );
 		self::done( $result['ok'], $result['message'] );
 	}
 
@@ -191,8 +198,10 @@ class Velrion_Backup_Admin {
 		$backups  = Velrion_Backup::backups();
 		$dir      = Velrion_Backup::dir();
 		$cron     = Velrion_Backup::cron_health();
-		$own      = count( wp_list_filter( $backups, array( 'own' => true ) ) );
-		$latest   = $backups ? $backups[0] : null;
+		// Dlaždice popisují plné zálohy; zálohy médií jsou jen doplněk.
+		$full     = array_values( wp_list_filter( $backups, array( 'type' => 'media' ), 'NOT' ) );
+		$own      = count( wp_list_filter( $backups, array( 'type' => 'full' ) ) );
+		$latest   = $full ? $full[0] : null;
 		$days     = array( 'neděli', 'pondělí', 'úterý', 'středu', 'čtvrtek', 'pátek', 'sobotu' );
 
 		$notice_key = 'velrion_backup_notice_' . get_current_user_id();
@@ -237,7 +246,7 @@ class Velrion_Backup_Admin {
 		$free    = @disk_free_space( $dir );
 		$t_store = array(
 			$own ? 'ok' : 'none',
-			$own . ' / ' . Velrion_Backup::KEEP . ' záloh',
+			$own . ' / ' . (int) $settings['keep'] . ' záloh',
 			size_format( array_sum( wp_list_pluck( $backups, 'size' ) ) ) . ' zabráno' . ( false !== $free ? ' · ' . size_format( $free ) . ' volno' : '' ),
 		);
 
@@ -288,7 +297,8 @@ class Velrion_Backup_Admin {
 				<h2>Zálohy</h2>
 				<p>
 					<?php self::button( 'create', 'Zálohovat nyní', '', 'button button-primary' ); ?>
-					<span class="description">Kompletní záloha: databáze a všechny soubory webu (WordPress, šablony, pluginy, média). Uchovávají se <?php echo (int) Velrion_Backup::KEEP; ?> nejnovější, nová přepíše nejstarší.</span>
+					<?php self::button( 'create_media', 'Zálohovat jen média' ); ?>
+					<span class="description">Kompletní záloha: databáze a všechny soubory webu (WordPress, šablony, pluginy, média). Jen média: složka wp-content/uploads bez databáze, ke stažení. Od každého typu se uchovává <?php echo (int) $settings['keep']; ?> nejnovějších, nová přepíše nejstarší.</span>
 				</p>
 				<table class="widefat striped">
 					<thead><tr><th>Soubor</th><th>Vytvořeno</th><th>Velikost</th><th>Integrita</th><th>Akce</th></tr></thead>
@@ -301,7 +311,7 @@ class Velrion_Backup_Admin {
 						<tr>
 							<td>
 								<code><?php echo esc_html( $b['file'] ); ?></code><br>
-								<span class="description"><?php echo esc_html( ! $b['own'] ? 'nahraný soubor' : ( isset( $i['trigger'] ) && 'auto' === $i['trigger'] ? 'automatická' : 'ruční' ) ); ?></span>
+								<span class="description"><?php echo esc_html( ! $b['own'] ? 'nahraný soubor' : ( 'media' === $b['type'] ? 'jen média' : ( isset( $i['trigger'] ) && 'auto' === $i['trigger'] ? 'automatická' : 'ruční' ) ) ); ?></span>
 							</td>
 							<td><?php echo esc_html( wp_date( 'j. n. Y H:i', $b['time'] ) ); ?></td>
 							<td><?php echo esc_html( size_format( $b['size'] ) ); ?></td>
@@ -318,7 +328,9 @@ class Velrion_Backup_Admin {
 								<a class="button vb-inline" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=velrion_backup_download&file=' . rawurlencode( $b['file'] ) ), 'velrion_backup_download' ) ); ?>">Stáhnout</a>
 								<?php
 								self::button( 'verify', 'Ověřit', $b['file'] );
-								self::button( 'restore', 'Obnovit', $b['file'], 'button', 'Obnovit web ze zálohy ' . $b['file'] . '? Aktuální databáze a soubory webu budou nevratně přepsány.' );
+								if ( 'media' !== $b['type'] ) {
+									self::button( 'restore', 'Obnovit', $b['file'], 'button', 'Obnovit web ze zálohy ' . $b['file'] . '? Aktuální databáze a soubory webu budou nevratně přepsány.' );
+								}
 								self::button( 'delete', 'Smazat', $b['file'], 'button-link button-link-delete', 'Opravdu smazat zálohu ' . $b['file'] . '?' );
 								?>
 							</td>
@@ -386,6 +398,18 @@ class Velrion_Backup_Admin {
 									<?php endfor; ?>
 								</select>
 								<p class="description">Čas podle časového pásma webu (Nastavení → Obecné). Den v týdnu platí jen pro týdenní zálohu.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Uchovávat</th>
+							<td>
+								<select name="keep">
+									<?php for ( $k = 1; $k <= Velrion_Backup::KEEP_MAX; $k++ ) : ?>
+										<option value="<?php echo (int) $k; ?>" <?php selected( (int) $settings['keep'], $k ); ?>><?php echo (int) $k; ?></option>
+									<?php endfor; ?>
+								</select>
+								nejnovějších záloh od každého typu
+								<p class="description">Při 1 záloze se stará smaže až po úspěšném vytvoření a ověření nové, na disku je proto chvíli potřeba místo na dvě.</p>
 							</td>
 						</tr>
 						<tr>

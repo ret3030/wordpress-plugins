@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Velrion Backup
  * Description: Kompletní záloha webu (databáze + všechny soubory) s ověřením integrity, stažením a obnovou - i ze ZIPu z jiného webu. Automatické zálohování přes cron, uchovává 3 poslední zálohy.
- * Version: 2.0.2
+ * Version: 2.1.0
  * Author: Velrion Solutions
  * Author URI: https://velrionsolutions.com
  * Plugin URI: https://velrionsolutions.com
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'VELRION_BACKUP_VERSION', '2.0.2' );
+define( 'VELRION_BACKUP_VERSION', '2.1.0' );
 define( 'VELRION_BACKUP_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once VELRION_BACKUP_PATH . 'includes/class-velrion-backup-db.php';

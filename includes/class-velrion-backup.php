@@ -16,8 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velrion_Backup {
 
-	const KEEP         = 3;
+	const KEEP_MAX     = 5;
 	const FILE_PREFIX  = 'velrion-backup-';
+	const MEDIA_PREFIX = 'velrion-media-';
+	const MEDIA_DIR    = 'wp-content/uploads';
 	const OPT_SETTINGS = 'velrion_backup_settings';
 	const OPT_STATE    = 'velrion_backup_state';
 	const OPT_DIR      = 'velrion_backup_dir';
@@ -46,6 +48,7 @@ class Velrion_Backup {
 				'weekday'          => 0,        // 0 = neděle ... 6 = sobota
 				'hour'             => 3,
 				'email_on_failure' => true,
+				'keep'             => 3,        // kolik záloh každého typu uchovávat
 			)
 		);
 	}
@@ -188,12 +191,15 @@ class Velrion_Backup {
 			if ( ! $path || ! is_file( $path ) ) {
 				continue;
 			}
+			$file = basename( $path );
+			$type = 0 === strpos( $file, self::FILE_PREFIX ) ? 'full' : ( 0 === strpos( $file, self::MEDIA_PREFIX ) ? 'media' : '' );
 			$list[] = array(
-				'file'  => basename( $path ),
+				'file'  => $file,
 				'path'  => $path,
 				'time'  => filemtime( $path ),
 				'size'  => filesize( $path ),
-				'own'   => 0 === strpos( basename( $path ), self::FILE_PREFIX ),
+				'own'   => '' !== $type,
+				'type'  => $type, // full | media | '' (nahraný soubor)
 				'info'  => self::read_info( $path ),
 			);
 		}
@@ -239,13 +245,13 @@ class Velrion_Backup {
 		@unlink( $zip_path . '.json' );
 	}
 
-	/** Ponechá $keep nejnovějších záloh vytvořených pluginem, starší smaže. */
-	private static function prune( $keep ) {
+	/** Ponechá $keep nejnovějších záloh daného typu vytvořených pluginem, starší smaže. */
+	private static function prune( $keep, $type ) {
 		$own = array_values(
 			array_filter(
 				self::backups(),
-				function ( $b ) {
-					return $b['own'];
+				function ( $b ) use ( $type ) {
+					return $type === $b['type'];
 				}
 			)
 		);
@@ -303,7 +309,8 @@ class Velrion_Backup {
 	 * @param string $trigger manual | auto
 	 * @return array{ok:bool,message:string}
 	 */
-	public static function create( $trigger = 'manual' ) {
+	/** @param string $type full = databáze a všechny soubory, media = jen wp-content/uploads. */
+	public static function create( $trigger = 'manual', $type = 'full' ) {
 		if ( ! self::lock() ) {
 			return array(
 				'ok'      => false,
@@ -333,17 +340,24 @@ class Velrion_Backup {
 			}
 
 			// Nejstarší zálohu smažeme ještě před vytvořením nové, aby na disku stačilo místo
-			// na KEEP archivů (ne KEEP + 1).
-			self::prune( self::KEEP - 1 );
+			// na $keep archivů (ne $keep + 1). Jednu starou ale vždy necháme, dokud nová neprojde
+			// kontrolou, jinak by se při selhání nezůstala žádná.
+			$keep = (int) self::settings()['keep'];
+			self::prune( max( 1, $keep - 1 ), $type );
 
-			$name = self::FILE_PREFIX . current_time( 'Y-m-d-His' ) . '.zip';
-			$path = $dir . '/' . $name;
-			$tmp  = $path . '.tmp';
-			$sql  = $dir . '/database.sql';
+			$media = 'media' === $type;
+			$name  = ( $media ? self::MEDIA_PREFIX : self::FILE_PREFIX ) . current_time( 'Y-m-d-His' ) . '.zip';
+			$path  = $dir . '/' . $name;
+			$tmp   = $path . '.tmp';
+			$sql   = $media ? '' : $dir . '/database.sql';
 
-			Velrion_Backup_DB::dump( $sql );
-			$result = self::build_zip( $tmp, $sql, $dir );
-			@unlink( $sql );
+			if ( $sql ) {
+				Velrion_Backup_DB::dump( $sql );
+			}
+			$result = self::build_zip( $tmp, $sql, $dir, $media ? self::MEDIA_DIR : '' );
+			if ( $sql ) {
+				@unlink( $sql );
+			}
 
 			if ( ! @rename( $tmp, $path ) ) {
 				throw new Exception( 'Hotový archiv se nepodařilo uložit: ' . $path );
@@ -354,6 +368,8 @@ class Velrion_Backup {
 				self::delete( $path );
 				throw new Exception( 'Nová záloha neprošla kontrolou integrity: ' . $check['message'] );
 			}
+
+			self::prune( $keep, $type );
 
 			$size    = filesize( $path );
 			$message = $result['skipped'] ? count( $result['skipped'] ) . ' nečitelných nebo během zálohy smazaných souborů vynecháno (např. ' . implode( ', ', array_slice( $result['skipped'], 0, 3 ) ) . ').' : '';
@@ -368,21 +384,23 @@ class Velrion_Backup {
 				)
 			);
 
-			self::update_state(
-				array(
-					'last_run'  => time(),
-					'status'    => 'success',
-					'message'   => $message,
-					'last_file' => $name,
-					'size'      => $size,
-					'duration'  => round( microtime( true ) - $started ),
-					'trigger'   => $trigger,
-				)
-			);
+			if ( ! $media ) {
+				self::update_state(
+					array(
+						'last_run'  => time(),
+						'status'    => 'success',
+						'message'   => $message,
+						'last_file' => $name,
+						'size'      => $size,
+						'duration'  => round( microtime( true ) - $started ),
+						'trigger'   => $trigger,
+					)
+				);
+			}
 
 			$response = array(
 				'ok'      => true,
-				'message' => 'Záloha ' . $name . ' vytvořena a ověřena (' . size_format( $size ) . ').',
+				'message' => ( $media ? 'Záloha médií ' : 'Záloha ' ) . $name . ' vytvořena a ověřena (' . size_format( $size ) . ').',
 			);
 		} catch ( Exception $e ) {
 			if ( $sql ) {
@@ -392,16 +410,18 @@ class Velrion_Backup {
 				@unlink( $tmp );
 			}
 
-			self::update_state(
-				array(
-					'last_run' => time(),
-					'status'   => 'error',
-					'message'  => $e->getMessage(),
-					'size'     => 0,
-					'duration' => round( microtime( true ) - $started ),
-					'trigger'  => $trigger,
-				)
-			);
+			if ( 'media' !== $type ) {
+				self::update_state(
+					array(
+						'last_run' => time(),
+						'status'   => 'error',
+						'message'  => $e->getMessage(),
+						'size'     => 0,
+						'duration' => round( microtime( true ) - $started ),
+						'trigger'  => $trigger,
+					)
+				);
+			}
 
 			if ( 'auto' === $trigger && self::settings()['email_on_failure'] ) {
 				wp_mail(
@@ -445,7 +465,7 @@ class Velrion_Backup {
 	 *
 	 * @return array{files:array<string,string>,skipped:string[],bytes:int}
 	 */
-	private static function collect_files( $backup_dir ) {
+	private static function collect_files( $backup_dir, $subdir = '' ) {
 		$root     = untrailingslashit( wp_normalize_path( ABSPATH ) );
 		$base_len = strlen( $root ) + 1;
 		$excluded = array( wp_normalize_path( $backup_dir ), wp_normalize_path( (string) realpath( $backup_dir ) ) );
@@ -455,7 +475,7 @@ class Velrion_Backup {
 
 		$iterator = new RecursiveIteratorIterator(
 			new RecursiveCallbackFilterIterator(
-				new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ),
+				new RecursiveDirectoryIterator( $subdir ? $root . '/' . $subdir : $root, FilesystemIterator::SKIP_DOTS ),
 				function ( $item ) use ( $excluded ) {
 					if ( $item->isLink() ) {
 						return false;
@@ -464,7 +484,7 @@ class Velrion_Backup {
 						// Adresáře záloh (i ze starších verzí pluginu) nezálohujeme do sebe.
 						return ! in_array( wp_normalize_path( $item->getPathname() ), $excluded, true ) && 0 !== strpos( $item->getFilename(), 'velrion-backups-' );
 					}
-					return ! preg_match( '/^velrion-backup-.*\.zip(\.tmp.*|\.json)?$/', $item->getFilename() );
+					return ! preg_match( '/^velrion-(backup|media)-.*\.zip(\.tmp.*|\.json)?$/', $item->getFilename() );
 				}
 			),
 			RecursiveIteratorIterator::LEAVES_ONLY,
@@ -503,10 +523,10 @@ class Velrion_Backup {
 	 * @throws Exception
 	 * @return array{files:int,skipped:string[]}
 	 */
-	private static function build_zip( $zip_path, $sql_file, $backup_dir ) {
+	private static function build_zip( $zip_path, $sql_file, $backup_dir, $subdir = '' ) {
 		global $wpdb;
 
-		$list    = self::collect_files( $backup_dir );
+		$list    = self::collect_files( $backup_dir, $subdir );
 		$files   = $list['files'];
 		$skipped = $list['skipped'];
 
@@ -516,7 +536,9 @@ class Velrion_Backup {
 				throw new Exception( 'Nepodařilo se vytvořit ZIP soubor: ' . $zip_path );
 			}
 
-			$zip->addFile( $sql_file, 'database.sql' );
+			if ( $sql_file ) {
+				$zip->addFile( $sql_file, 'database.sql' );
+			}
 
 			foreach ( $files as $relative => $path ) {
 				$entry = 'files/' . $relative;
@@ -532,6 +554,7 @@ class Velrion_Backup {
 					array(
 						'plugin'         => 'Velrion Backup',
 						'plugin_version' => VELRION_BACKUP_VERSION,
+						'type'           => $sql_file ? 'full' : 'media',
 						'created'        => current_time( 'mysql' ),
 						'home_url'       => home_url(),
 						'site_url'       => site_url(),
@@ -566,7 +589,7 @@ class Velrion_Backup {
 						'Zápis ZIP archivu selhal: %s. Záloha má před kompresí %s - pokud chyba zmiňuje místo nebo kvótu (quota, No space), hosting nemá na zálohy dost místa (uchovávají se %d).',
 						$error,
 						size_format( $list['bytes'] ),
-						self::KEEP
+						(int) self::settings()['keep']
 					)
 				);
 			}
@@ -622,8 +645,9 @@ class Velrion_Backup {
 			return $fail( 'Soubor je poškozený nebo to není ZIP (kód ' . $open . ').' );
 		}
 
-		$meta = self::read_meta( $zip );
-		if ( false === $zip->locateName( 'database.sql' ) || ! $meta ) {
+		$meta  = self::read_meta( $zip );
+		$media = 'media' === ( $meta['type'] ?? '' );
+		if ( ! $meta || ( ! $media && false === $zip->locateName( 'database.sql' ) ) ) {
 			$zip->close();
 			return $fail( 'Nejde o zálohu z pluginu Velrion Backup (chybí databáze nebo metadata).' );
 		}
@@ -668,7 +692,7 @@ class Velrion_Backup {
 
 		return array(
 			'ok'      => true,
-			'message' => 'Databáze a ' . number_format( $files, 0, ',', ' ' ) . ' souborů v pořádku.',
+			'message' => ( $media ? 'Média: ' : 'Databáze a ' ) . number_format( $files, 0, ',', ' ' ) . ' souborů v pořádku.',
 		);
 	}
 
@@ -718,6 +742,10 @@ class Velrion_Backup {
 				throw new Exception( 'ZIP se nepodařilo otevřít.' );
 			}
 			$meta = self::read_meta( $zip );
+			if ( 'media' === ( $meta['type'] ?? '' ) ) {
+				$zip->close();
+				throw new Exception( 'Záloha médií neobsahuje databázi, web z ní obnovit nejde. Stáhněte ji a složku files/wp-content/uploads nahrajte přes FTP nebo Správce souborů.' );
+			}
 
 			// Hodnoty, které musí zůstat podle tohoto webu: doména a vlastní nastavení pluginu
 			// (adresář záloh, klíč cronu, plán). Import databáze by je přepsal.
