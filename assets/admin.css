@@ -1,0 +1,106 @@
+.cg-wrap .cg-box {
+	padding: 0;
+	margin: 16px 0;
+}
+
+.cg-box-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 12px 16px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.cg-box-head .cg-title {
+	font-weight: 600;
+}
+
+.cg-box-head .cg-slug {
+	color: #646970;
+	background: #f0f0f1;
+	font-size: 12px;
+}
+
+.cg-box-head .cg-delete {
+	margin-left: auto;
+	color: #b32d2e;
+}
+
+.cg-box-body {
+	padding: 16px;
+}
+
+.cg-items {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+	min-height: 20px;
+}
+
+.cg-default-submit {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	border: 0;
+	padding: 0;
+}
+
+.cg-item {
+	position: relative;
+	width: 100px;
+	height: 100px;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	overflow: hidden;
+	background: #f6f7f7;
+	cursor: move;
+}
+
+.cg-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	pointer-events: none;
+}
+
+.cg-item .cg-remove {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+	width: 22px;
+	height: 22px;
+	line-height: 1;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.65);
+	color: #fff;
+	font-size: 16px;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.12s ease;
+}
+
+.cg-item:hover .cg-remove,
+.cg-item .cg-remove:focus {
+	opacity: 1;
+}
+
+.cg-placeholder {
+	border: 1px dashed #8c8f94;
+	background: #fff;
+}
+
+.cg-empty {
+	padding: 16px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left: 4px solid #72aee6;
+}

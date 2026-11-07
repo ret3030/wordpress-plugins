@@ -1,0 +1,179 @@
+/**
+ * Redakční galerie — frontend.
+ *
+ * Designový záměr: dlaždice je tmavá jáma, fotka v ní je zhasnutá lampa.
+ * Najetím se kus „rozsvítí“ — prosvětlí a prosákne teplá záře 2700 K.
+ * Jediná teplá barva na stránce pochází ze světla na fotkách.
+ */
+
+.cg-gallery {
+	/* Podklad dlaždice — nerozsvícená místnost, chladná téměř-čerň. */
+	--cg-ground: #101215;
+	/* Světlo žárovky, 2700 K. */
+	--cg-glow: rgba(255, 176, 87, 0.34);
+	--cg-glow-line: rgba(255, 176, 87, 0.22);
+	--cg-hairline: rgba(255, 255, 255, 0.08);
+	/* Název kusu — teplá bělost papíru. */
+	--cg-name: #f2efe9;
+	/* Specifikace — technický, chladný, potichu. */
+	--cg-spec: #8d9099;
+	--cg-scrim: 8, 9, 11;
+}
+
+/* ---------- Rozvržení ---------- */
+
+.cg-gallery--grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14px;
+}
+
+.cg-gallery--masonry {
+	display: block;
+	column-count: 3;
+	column-gap: 14px;
+}
+
+.cg-gallery--masonry .cg-piece {
+	break-inside: avoid;
+	-webkit-column-break-inside: avoid;
+	display: block;
+	width: 100%;
+	margin-bottom: 14px;
+	/* Vlastní vykreslovací vrstva: Safari jinak při animaci filtru v CSS sloupcích
+	   překresluje kusy prvního sloupce špatně a ty problikávají. */
+	transform: translateZ(0);
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+}
+
+/* ---------- Kus ---------- */
+
+.cg-gallery .cg-piece {
+	position: relative;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+}
+
+.cg-gallery .cg-frame {
+	display: block;
+	position: relative;
+	overflow: hidden;
+	line-height: 0;
+	background: var(--cg-ground);
+	border-radius: inherit;
+}
+
+.cg-gallery .cg-frame img {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-width: 100%;
+}
+
+/* ---------- Rozsvícení ---------- */
+
+.cg-gallery--lit .cg-frame {
+	filter: brightness(0.88) saturate(0.9);
+	box-shadow: 0 0 0 1px var(--cg-hairline);
+	transition: filter 0.45s ease, box-shadow 0.45s ease, transform 0.45s ease;
+	will-change: filter;
+}
+
+.cg-gallery--lit .cg-piece:hover .cg-frame,
+.cg-gallery--lit .cg-piece:focus-within .cg-frame {
+	filter: brightness(1.05) saturate(1.06);
+	box-shadow:
+		0 0 0 1px var(--cg-glow-line),
+		0 14px 44px -10px var(--cg-glow);
+}
+
+/* Viditelné zaostření klávesnicí — nespoléhat jen na záři. */
+.cg-gallery .cg-frame:focus-visible {
+	outline: 2px solid var(--cg-glow-line);
+	outline-offset: 3px;
+}
+
+/* ---------- Štítek ---------- */
+
+.cg-gallery .cg-plate {
+	margin: 0;
+	padding: 10px 2px 0;
+}
+
+.cg-gallery .cg-name {
+	display: block;
+	color: var(--cg-name);
+	font-size: 0.95em;
+	line-height: 1.35;
+}
+
+.cg-gallery .cg-spec {
+	display: block;
+	margin-top: 3px;
+	color: var(--cg-spec);
+	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+	font-size: 0.68em;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	line-height: 1.5;
+}
+
+/* Štítek přes fotku */
+
+.cg-gallery--overlay .cg-plate {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	padding: 34px 14px 12px;
+	background: linear-gradient(
+		to top,
+		rgba(var(--cg-scrim), 0.92) 0%,
+		rgba(var(--cg-scrim), 0.68) 45%,
+		rgba(var(--cg-scrim), 0) 100%
+	);
+	opacity: 0;
+	transform: translateY(6px);
+	transition: opacity 0.35s ease, transform 0.35s ease;
+	pointer-events: none;
+	border-radius: inherit;
+}
+
+.cg-gallery--overlay .cg-piece:hover .cg-plate,
+.cg-gallery--overlay .cg-piece:focus-within .cg-plate {
+	opacity: 1;
+	transform: none;
+}
+
+/* Na dotykových zařízeních není hover — štítek necháme vidět. */
+@media (hover: none) {
+	.cg-gallery--overlay .cg-plate {
+		opacity: 1;
+		transform: none;
+	}
+
+	.cg-gallery--lit .cg-frame {
+		filter: none;
+	}
+}
+
+/* ---------- Přístupnost ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+	.cg-gallery .cg-frame,
+	.cg-gallery .cg-plate {
+		transition: none;
+	}
+}
+
+/* ---------- Prázdný stav v editoru ---------- */
+
+.cg-gallery-notice {
+	padding: 16px 18px;
+	border: 1px dashed currentColor;
+	border-radius: 4px;
+	opacity: 0.7;
+	font-size: 14px;
+}
