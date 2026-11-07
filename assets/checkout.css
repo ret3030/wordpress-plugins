@@ -1,0 +1,42 @@
+.velrion-dpd-pickup {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.velrion-dpd-selected {
+	font-size: 0.9em;
+}
+
+.velrion-dpd-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	background: rgba(0, 0, 0, 0.6);
+}
+
+.velrion-dpd-overlay iframe {
+	width: 100%;
+	max-width: 1100px;
+	height: 90vh;
+	border: 0;
+	border-radius: 6px;
+	background: #fff;
+}
+
+@media (max-width: 600px) {
+	.velrion-dpd-overlay {
+		padding: 0;
+	}
+
+	.velrion-dpd-overlay iframe {
+		height: 100%;
+		border-radius: 0;
+	}
+}
