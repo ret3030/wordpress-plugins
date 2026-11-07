@@ -7,6 +7,7 @@ Vlastní WordPress pluginy. Každý plugin má svou větev, soubory jsou v koře
 | `velrion-backup` | Velrion Backup | Záloha celého webu s týdenním cronem, kontrolou integrity a obnovou na jiný web. |
 | `velrion-snippets` | Velrion Snippets | Správa PHP, CSS, JS a HTML snippetů na jednom místě. |
 | `velrion-dpd-pickup` | Velrion DPD Pickup | Výběr výdejního místa nebo boxu DPD (včetně AlzaBoxů) v pokladně. |
+| `velrion-shop-manager` | Velrion Shop Manager | Zjednodušená administrace pro správce obchodu, nahrazuje Adminimize a User Role Editor. |
 | `epoxis-faq` | Epoxis FAQ | FAQ pro epoxis.cz. |
 | `epoxis-gravirovani` | Epoxis gravírování | Volitelné gravírování u vybraných produktů na epoxis.cz. |
 
