@@ -8,11 +8,14 @@
 		return $( toShipping ? '#shipping_country' : '#billing_country' ).val();
 	}
 
-	function openWidget() {
+	function openWidget( excludeProvider ) {
 		const url = new URL( config.widgetUrl );
 		url.searchParams.set( 'lang', config.lang );
 		if ( deliveryCountry() ) {
 			url.searchParams.set( 'countries', deliveryCountry() );
+		}
+		if ( excludeProvider ) {
+			url.searchParams.set( 'excludeLockerProvider', excludeProvider );
 		}
 
 		overlay = $( '<div class="velrion-dpd-overlay"><iframe allow="geolocation"></iframe></div>' );
@@ -58,7 +61,7 @@
 
 	$( document.body ).on( 'click', '.velrion-dpd-choose', function ( event ) {
 		event.preventDefault();
-		openWidget();
+		openWidget( $( this ).data( 'exclude' ) );
 	} );
 	$( document.body ).on( 'updated_checkout', render );
 	$( document ).on( 'keydown', function ( event ) {

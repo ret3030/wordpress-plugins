@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Velrion DPD Pickup
  * Description:       Doprava DPD Pickup: zákazník si v pokladně vybere výdejní místo nebo box DPD (včetně AlzaBoxů) na mapě DPD.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VELRION_DPD_METHOD = 'velrion_dpd_pickup';
-const VELRION_DPD_VERSION = '1.0.0';
+const VELRION_DPD_VERSION = '1.1.0';
 const VELRION_DPD_WIDGET = 'https://api.dpd.cz/widget/latest/index.html';
 /** Jazyky, které widget DPD umí; ostatní dostanou angličtinu. */
 const VELRION_DPD_LANGS = array( 'bg', 'cs', 'de', 'en', 'es', 'el', 'et', 'fr', 'hr', 'hu', 'it', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv' );
@@ -48,10 +48,16 @@ add_action(
 						'type'    => 'text',
 						'default' => 'DPD Pickup (AlzaBox, box nebo výdejní místo DPD)',
 					),
-					'cost'  => array(
+					'cost'      => array(
 						'title'   => 'Cena',
 						'type'    => 'price',
 						'default' => '79',
+					),
+					'hide_zbox' => array(
+						'title'   => 'Z-BOXy',
+						'type'    => 'checkbox',
+						'label'   => 'Skrýt Z-BOXy v mapě (nabízí je už doprava Zásilkovnou)',
+						'default' => 'yes',
 					),
 				);
 				$this->title = $this->get_option( 'title' );
@@ -133,7 +139,13 @@ add_action(
 		if ( ( $chosen[ $index ] ?? '' ) !== $rate->get_id() ) {
 			return;
 		}
-		echo '<div class="velrion-dpd-pickup"><span class="velrion-dpd-selected"></span><button type="button" class="button velrion-dpd-choose"></button></div>';
+		// Hodnota pro nezdokumentovaný, ale funkční parametr widgetu excludeLockerProvider.
+		$method  = WC_Shipping_Zones::get_shipping_method( $rate->get_instance_id() );
+		$exclude = $method && 'yes' === $method->get_option( 'hide_zbox', 'yes' ) ? 'ZBox' : '';
+		printf(
+			'<div class="velrion-dpd-pickup"><span class="velrion-dpd-selected"></span><button type="button" class="button velrion-dpd-choose" data-exclude="%s"></button></div>',
+			esc_attr( $exclude )
+		);
 	},
 	10,
 	2
