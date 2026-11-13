@@ -22,6 +22,13 @@ function get_permalink( $id ) { return "https://www.epoxis.cz/page-$id/"; }
 function __return_false() { return false; }
 function __return_empty_string() { return ''; }
 
+$transients = [];
+function get_transient( $k ) { global $transients; return $transients[ $k ] ?? false; }
+function set_transient( $k, $v ) { global $transients; $transients[ $k ] = $v; }
+function delete_transient( $k ) { global $transients; unset( $transients[ $k ] ); }
+class WP_Error { public $code; public function __construct( $code = '' ) { $this->code = $code; } }
+$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
+
 $fails = 0;
 function check( string $name, bool $ok ) {
 	global $fails;
@@ -89,6 +96,44 @@ touch( ABSPATH . 'readme.html' );
 touch( ABSPATH . 'license.txt' );
 epoxis_delete_info_files();
 check( 'readme.html a license.txt smazány', ! file_exists( ABSPATH . 'readme.html' ) && ! file_exists( ABSPATH . 'license.txt' ) );
+
+// Skrytá adresa přihlášení
+check( 'naše adresa otevře přihlášení', 'login' === epoxis_login_route( '/login_55023', '', 'login_55023' ) );
+check( 'adresa s lomítkem a parametry otevře přihlášení', 'login' === epoxis_login_route( '/login_55023/?redirect_to=x', '', 'login_55023' ) );
+check( 'adresa v podsložce webu', 'login' === epoxis_login_route( '/blog/login_55023', '/blog', 'login_55023' ) );
+check( 'přímý wp-login.php je blokovaný', 'blocked' === epoxis_login_route( '/wp-login.php', '', 'login_55023' ) );
+check( 'wp-login.php s akcí a lomítkem je blokovaný', 'blocked' === epoxis_login_route( '/wp-login.php/?action=lostpassword', '', 'login_55023' ) );
+check( 'běžné stránky projdou', 'pass' === epoxis_login_route( '/produkt/henry/', '', 'login_55023' ) && 'pass' === epoxis_login_route( '/wp-admin/', '', 'login_55023' ) && 'pass' === epoxis_login_route( '/', '', 'login_55023' ) );
+check( 'podobný název není blokovaný', 'pass' === epoxis_login_route( '/wp-login.phpx', '', 'login_55023' ) && 'pass' === epoxis_login_route( '/login_550230', '', 'login_55023' ) );
+check( 'odkazy na přihlášení vedou na naši adresu', 'https://www.epoxis.cz/login_55023?action=lostpassword' === run( 'site_url', 'https://www.epoxis.cz/wp-login.php?action=lostpassword', 'wp-login.php?action=lostpassword' ) );
+check( 'ostatní odkazy se nemění', 'https://www.epoxis.cz/wp-login.php-neco' === run( 'site_url', 'https://www.epoxis.cz/wp-login.php-neco', 'neco' ) );
+
+// Zámek po chybných pokusech
+$fail = function () { foreach ( $GLOBALS['hooks']['wp_login_failed'] as $fn ) { $fn( 'root', new WP_Error() ); } };
+$locked_auth = function () { return run( 'authenticate', 'ok-user' ); };
+for ( $i = 0; $i < 4; $i++ ) { $fail(); }
+check( '4 chyby ještě nezamknou', 'ok-user' === $locked_auth() && 'Přihlášení se nezdařilo.' === run( 'login_errors', 'x' ) );
+$fail();
+check( '5. chyba zamkne přihlášení i pro správné heslo', $locked_auth() instanceof WP_Error );
+check( 'při zámku je jiná hláška', str_contains( run( 'login_errors', 'x' ), 'Příliš mnoho' ) );
+$count = $GLOBALS['transients'][ epoxis_login_key() ];
+$fail(); $fail();
+check( 'během zámku se pokusy nepočítají', $count === $GLOBALS['transients'][ epoxis_login_key() ] );
+$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+check( 'jiná IP zamčená není', 'ok-user' === $locked_auth() );
+$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
+unset( $GLOBALS['transients'][ epoxis_login_key() ] ); // uplynutí 15 minut
+check( 'po uplynutí zámku jde přihlášení znovu', 'ok-user' === $locked_auth() );
+$fail(); $fail();
+run( 'wp_login', 'david' );
+check( 'úspěšné přihlášení vynuluje počítadlo', ! isset( $GLOBALS['transients'][ epoxis_login_key() ] ) );
+
+// Nouzový vypínač (musí být poslední, konstantu nelze zrušit)
+for ( $i = 0; $i < 5; $i++ ) { $fail(); }
+define( 'EPOXIS_LOGIN_PROTECTION_OFF', true );
+check( 'nouzový vypínač vypne zámek', 'ok-user' === $locked_auth() );
+check( 'nouzový vypínač vrátí wp-login.php v odkazech', 'https://www.epoxis.cz/wp-login.php' === run( 'site_url', 'https://www.epoxis.cz/wp-login.php', 'wp-login.php' ) );
+
 rmdir( ABSPATH );
 
 exit( $fails ? 1 : 0 );

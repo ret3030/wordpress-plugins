@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Epoxis Hardening
- * Description: Zabezpečení WordPressu a WooCommerce: výpis uživatelů, bezpečnostní hlavičky, XML-RPC, sitemap, robots.txt, security.txt.
- * Version: 1.0.0
+ * Description: Zabezpečení WordPressu a WooCommerce: skryté přihlášení se zámkem, výpis uživatelů, bezpečnostní hlavičky, XML-RPC, sitemap, robots.txt, security.txt.
+ * Version: 1.1.0
  * Requires PHP: 8.0
  * Requires at least: 6.0
  * License: GPL-2.0-or-later
@@ -41,9 +41,6 @@ add_action(
 	},
 	1
 );
-
-// Přihlašovací chyba nesmí říct, jestli neplatné je jméno, nebo heslo.
-add_filter( 'login_errors', fn() => 'Přihlášení se nezdařilo.' );
 
 add_filter(
 	'oembed_response_data',
@@ -196,3 +193,91 @@ add_action(
 		exit;
 	}
 );
+
+// ---------------------------------------------------------------------------
+// Přihlášení: skrytá adresa a zámek po chybných pokusech
+// ---------------------------------------------------------------------------
+
+// Nouzový vypínač: define( 'EPOXIS_LOGIN_PROTECTION_OFF', true ); ve wp-config.php vrátí běžný wp-login.php a vypne zámek.
+function epoxis_login_protection_on(): bool {
+	return ! defined( 'EPOXIS_LOGIN_PROTECTION_OFF' ) || ! EPOXIS_LOGIN_PROTECTION_OFF;
+}
+
+// Adresa přihlášení, výchozí je stejná jako dosud u SiteGuardu. Změna: define( 'EPOXIS_LOGIN_SLUG', 'neco-jineho' );
+function epoxis_login_slug(): string {
+	return defined( 'EPOXIS_LOGIN_SLUG' ) ? EPOXIS_LOGIN_SLUG : 'login_55023';
+}
+
+/** Co s požadavkem: 'login' (naše adresa), 'blocked' (přímý wp-login.php) nebo 'pass'. */
+function epoxis_login_route( string $request_uri, string $home_path, string $slug ): string {
+	$path = rtrim( (string) parse_url( $request_uri, PHP_URL_PATH ), '/' );
+	if ( $path === rtrim( $home_path, '/' ) . '/' . $slug ) {
+		return 'login';
+	}
+	return 'wp-login.php' === basename( $path ) ? 'blocked' : 'pass';
+}
+
+// WordPress staví všechny odkazy na přihlášení, odhlášení a obnovu hesla přes wp-login.php, ty přesměrujeme na naši adresu.
+function epoxis_login_site_url( string $url, string $path ): string {
+	return str_starts_with( $path, 'wp-login.php' ) ? str_replace( 'wp-login.php', epoxis_login_slug(), $url ) : $url;
+}
+add_filter(
+	'site_url',
+	function ( $url, $path ) {
+		return epoxis_login_protection_on() ? epoxis_login_site_url( $url, (string) $path ) : $url;
+	},
+	10,
+	2
+);
+
+add_action(
+	'wp_loaded',
+	function () {
+		if ( ! epoxis_login_protection_on() ) {
+			return;
+		}
+		$route = epoxis_login_route( $_SERVER['REQUEST_URI'] ?? '', (string) wp_parse_url( home_url(), PHP_URL_PATH ), epoxis_login_slug() );
+
+		if ( 'blocked' === $route ) {
+			wp_die( 'Stránka nebyla nalezena.', 'Nenalezeno', array( 'response' => 404 ) );
+		}
+		if ( 'login' === $route ) {
+			// wp-login.php počítá s těmito proměnnými v globálním rozsahu.
+			global $pagenow, $error, $interim_login, $action, $user_login;
+			$pagenow = 'wp-login.php';
+			require_once ABSPATH . 'wp-login.php';
+			exit;
+		}
+	}
+);
+
+// Zámek podle IP: po 5 chybných pokusech se přihlášení na 15 minut zamkne, a to i pro správné heslo.
+// Používá REMOTE_ADDR, což je skutečná adresa jen když hosting neposílá požadavky přes sdílenou proxy.
+const EPOXIS_LOGIN_MAX_FAILS    = 5;
+const EPOXIS_LOGIN_LOCK_SECONDS = 900;
+
+function epoxis_login_key(): string {
+	return 'epoxis_login_' . md5( $_SERVER['REMOTE_ADDR'] ?? '' );
+}
+
+function epoxis_login_locked(): bool {
+	return epoxis_login_protection_on() && (int) get_transient( epoxis_login_key() ) >= EPOXIS_LOGIN_MAX_FAILS;
+}
+
+// Během zámku se pokusy nepočítají, aby útočník zámek neprodlužoval.
+add_action(
+	'wp_login_failed',
+	function () {
+		if ( epoxis_login_protection_on() && ! epoxis_login_locked() ) {
+			set_transient( epoxis_login_key(), (int) get_transient( epoxis_login_key() ) + 1, EPOXIS_LOGIN_LOCK_SECONDS );
+		}
+	}
+);
+
+// Priorita 100: až po všech kontrolách hesla, jinak by je platné heslo přebilo.
+add_filter( 'authenticate', fn( $user ) => epoxis_login_locked() ? new WP_Error( 'epoxis_locked', 'Příliš mnoho pokusů.' ) : $user, 100 );
+
+add_action( 'wp_login', fn() => delete_transient( epoxis_login_key() ) );
+
+// Chyba nesmí říct, jestli je neplatné jméno, nebo heslo. Při zámku řekneme jen to, že je zamčeno.
+add_filter( 'login_errors', fn() => epoxis_login_locked() ? 'Příliš mnoho pokusů o přihlášení. Zkuste to za 15 minut.' : 'Přihlášení se nezdařilo.' );
