@@ -1,0 +1,30 @@
+.epxb-form th { width: 190px; }
+.epxb-form td label { margin-right: 16px; }
+
+.epxb-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.epxb-picker .epxb-pick {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	background: #fff;
+	cursor: pointer;
+}
+.epxb-picker .epxb-pick:has(input:checked) { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; }
+.epxb-picker .epxb-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.epxb-picker .epxb-icon { width: 24px; height: 24px; flex: none; color: #3c434a; }
+.epxb-picker .epxb-pick span { font-size: 12px; line-height: 1.25; }
+
+.epxb-stage {
+	position: relative;
+	height: 150px;
+	border-radius: 6px;
+	background: linear-gradient(135deg, #e7e2da, #cfc8bd);
+}
+.epxb-stage .epxb-corner { position: absolute; }
+
+/* V seznamu odznaků nejsou rohy absolutní. */
+.epxb-corner.epxb-static { position: static; }
