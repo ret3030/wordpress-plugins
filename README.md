@@ -5,7 +5,7 @@ Zjednodušená administrace pro roli Správce obchodu (WooCommerce). Nahrazuje p
 ## Co dělá
 
 - **Při aktivaci** upraví roli Správce obchodu: odebere oprávnění, která umožňovala měnit nastavení webu, instalovat šablony a upravovat jejich PHP soubory (`manage_options`, `edit_themes`, `edit_files` a další, viz `VELRION_SM_REMOVE_CAPS`), a přidá `translate_strings` pro překlad webu v TranslatePress.
-- **Menu:** jen Produkty, Objednávky, Média (včetně Galerie), FAQ, Kupóny a Překlad webu, v tomto pořadí (`VELRION_SM_MENU`).
+- **Menu:** jen Produkty, Objednávky, Média (včetně Galerie), FAQ, Odznaky (plugin Epoxis odznaky), Kupóny a Překlad webu, v tomto pořadí (`VELRION_SM_MENU`).
 - **Bez hlášky o nové verzi WordPressu** („Kontaktujte administrátora webu“). Aktualizace řeší administrátor, ten ji vidí dál.
 - **Horní lišta:** jen název webu, překlad a účet s odhlášením.
 - **Přihlášení:** místo nástěnky rovnou seznam produktů. Odkaz na konkrétní stránku (např. objednávku z e-mailu) zůstane.

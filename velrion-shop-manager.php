@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Velrion Shop Manager
- * Description:       Zjednodušená administrace pro roli Správce obchodu: jen produkty, média, objednávky a překlad. Nahrazuje Adminimize a User Role Editor.
- * Version:           1.1.0
+ * Description:       Zjednodušená administrace pro roli Správce obchodu: jen produkty, odznaky, média, objednávky a překlad. Nahrazuje Adminimize a User Role Editor.
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -44,6 +44,7 @@ const VELRION_SM_MENU = array(
 	'woocommerce'                => array( 'wc-orders', 'edit.php?post_type=shop_order' ),
 	'upload.php'                 => null,
 	'edit.php?post_type=epx_faq' => null,
+	'edit.php?post_type=epx-badge' => null,
 	'woocommerce-marketing'      => array( 'edit.php?post_type=shop_coupon' ),
 	'profile.php'                => null,
 );
