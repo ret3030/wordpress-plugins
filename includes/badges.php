@@ -115,13 +115,15 @@ function epxb_badge_html( array $badge ): string {
 	$style   = sprintf( '--epxb-bg:%s;--epxb-fg:%s', $s['bg_color'], $s['text_color'] );
 
 	if ( 'icon' === $s['type'] ) {
+		// Popisek se při najetí myší, zaměření nebo dotyku vysune vedle ikony (tabindex kvůli dotyku a klávesnici).
+		$label = '' === $s['text'] ? '' : '<span class="epxb-label">' . esc_html( $s['text'] ) . '</span>';
 		return sprintf(
-			'<span class="%s" style="%s" role="img" aria-label="%s" data-label="%s">%s</span>',
+			'<span class="%s" style="%s" tabindex="0" role="img" aria-label="%s">%s%s</span>',
 			esc_attr( $classes ),
 			esc_attr( $style ),
 			esc_attr( $s['text'] ),
-			esc_attr( $s['text'] ),
-			epxb_icon_svg( $s['icon'] )
+			epxb_icon_svg( $s['icon'] ),
+			$label
 		);
 	}
 	return sprintf( '<span class="%s" style="%s">%s</span>', esc_attr( $classes ), esc_attr( $style ), esc_html( $s['text'] ) );

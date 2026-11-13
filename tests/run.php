@@ -17,7 +17,9 @@ class WC_Product {
 	public function get_parent_id() { return $this->parent; }
 }
 
-function add_action() {}
+$hooks = array();
+function add_action( $tag, $fn ) { global $hooks; $hooks[ $tag ][] = $fn; }
+function add_filter( $tag, $fn ) { add_action( $tag, $fn ); }
 function absint( $n ) { return abs( (int) $n ); }
 function esc_attr( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES ); }
 function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES ); }
@@ -39,6 +41,7 @@ function check( string $name, bool $ok ) {
 }
 
 require __DIR__ . '/../includes/badges.php';
+require __DIR__ . '/../includes/admin.php';
 
 // Čištění: textový odznak (nastavení z formuláře).
 $text_badge = array( 'type' => 'text', 'text' => 'Expedice do 72h 📦', 'bg_color' => '#609933', 'text_color' => '#ffffff', 'position' => 'top-left', 'offset_top' => '10', 'size' => 'medium', 'shape' => 'rectangle', 'show_on_single' => 'yes', 'custom_css' => '' );
@@ -65,9 +68,13 @@ foreach ( epxb_presets() as $key => $p ) {
 
 // HTML odznaku
 $html = epxb_badge_html( array( 'id' => 7, 'settings' => epxb_clean_settings( array( 'type' => 'icon', 'icon' => 'bulb', 'text' => 'Vyměnitelná "žárovka"' ) ) ) );
-check( 'ikonový odznak má svg, role a escapovaný popisek', str_contains( $html, '<svg' ) && str_contains( $html, 'role="img"' ) && str_contains( $html, 'Vyměnitelná &quot;žárovka&quot;' ) );
+check( 'ikonový odznak má svg, role a escapovaný popisek', str_contains( $html, '<svg' ) && str_contains( $html, 'role="img"' ) && str_contains( $html, 'aria-label="Vyměnitelná &quot;žárovka&quot;"' ) );
+check( 'popisek je viditelný prvek vedle ikony', str_contains( $html, '<span class="epxb-label">Vyměnitelná &quot;žárovka&quot;</span>' ) );
+check( 'ikonový odznak jde zaměřit dotykem a klávesnicí', str_contains( $html, 'tabindex="0"' ) );
+$no_label = epxb_badge_html( array( 'id' => 7, 'settings' => epxb_clean_settings( array( 'type' => 'icon', 'icon' => 'bulb', 'text' => '' ) ) ) );
+check( 'bez popisku se prvek popisku nevykreslí', ! str_contains( $no_label, 'epxb-label' ) );
 $html = epxb_badge_html( array( 'id' => 8, 'settings' => $s ) );
-check( 'textový odznak nemá svg', ! str_contains( $html, '<svg' ) && str_contains( $html, 'Expedice do 72h' ) );
+check( 'textový odznak nemá svg ani popisek', ! str_contains( $html, '<svg' ) && ! str_contains( $html, 'epxb-label' ) && str_contains( $html, 'Expedice do 72h' ) );
 
 // Výběr pro produkt
 $icon_eco = epxb_clean_settings( array_merge( epxb_defaults(), array( 'icon' => 'eco' ) ) );
@@ -92,6 +99,30 @@ check( 'odznaky se načtou jedním dotazem a pak z cache', 0 === $queries );
 epxb_flush_cache();
 epxb_get_badges();
 check( 'po vyprázdnění cache se načte znovu', 1 === $queries );
+
+// Zakládání hotových ikon
+$options = array();
+$inserted = array();
+function get_option( $k, $default = false ) { global $options; return $options[ $k ] ?? $default; }
+function update_option( $k, $v ) { global $options; $options[ $k ] = $v; }
+function wp_insert_post( $a ) { global $inserted; $inserted[] = $a; return 900 + count( $inserted ); }
+function is_wp_error() { return false; }
+function wp_slash( $v ) { return $v; }
+function update_post_meta() {}
+$seed = $hooks['admin_init'][0];
+
+$seed();
+check( 'první spuštění založí všechny ikony jako koncepty', count( $inserted ) === count( epxb_presets() ) && array( 'draft' ) === array_unique( array_column( $inserted, 'post_status' ) ) );
+$seed();
+check( 'druhé spuštění nic nezaloží', count( $inserted ) === count( epxb_presets() ) );
+$before = count( $inserted );
+$options['epxb_seeded'] = array_diff( array_keys( epxb_presets() ), array( 'gift' ) ); // jedna ikona chybí
+$seed();
+check( 'chybějící ikona se doplní', $before + 1 === count( $inserted ) && 'Super dárek' === end( $inserted )['post_title'] );
+$before = count( $inserted );
+$options['epxb_seeded'] = '2.0.0'; // starý formát z verze 2.0.0
+$seed();
+check( 'starý formát nevytvoří duplicity', $before === count( $inserted ) );
 
 // Rohy
 $corners = epxb_corners_html( array(

@@ -18,7 +18,10 @@ jQuery( function ( $ ) {
 			.css( { '--epxb-bg': $bg.val(), '--epxb-fg': $fg.val() } );
 
 		if ( type === 'icon' ) {
-			$badge.attr( 'data-label', $text.val() ).append( field( 'icon' ).filter( ':checked' ).closest( '.epxb-pick' ).find( 'svg' ).clone() );
+			$badge.attr( 'tabindex', 0 ).append( field( 'icon' ).filter( ':checked' ).closest( '.epxb-pick' ).find( 'svg' ).clone() );
+			if ( $text.val() ) {
+				$badge.append( $( '<span class="epxb-label"></span>' ).text( $text.val() ) );
+			}
 		} else {
 			$badge.text( $text.val() );
 		}

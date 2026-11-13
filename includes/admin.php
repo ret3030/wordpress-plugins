@@ -33,30 +33,23 @@ add_action(
 
 /**
  * Hotové ikony se založí jako koncepty, tedy vypnuté. Stačí u nich vybrat kategorie nebo produkty
- * a zveřejnit. Přidá se jen to, co chybí, takže nové ikony v další verzi se doplní bez duplicit.
+ * a zveřejnit. Pamatují se klíče už založených ikon: smazaná ikona se nevrací, nová ve vyšší verzi se doplní.
  */
 add_action(
 	'admin_init',
 	function () {
-		if ( get_option( 'epxb_seeded' ) === EPXB_VERSION ) {
+		$done = get_option( 'epxb_seeded', array() );
+		if ( ! is_array( $done ) ) {
+			$done = array_keys( epxb_presets() ); // Verze 2.0.0 ukládala číslo verze a tehdy se založily všechny.
+		}
+		$missing = array_diff( array_keys( epxb_presets() ), $done );
+		if ( ! $missing ) {
 			return;
 		}
-		$existing = get_posts(
-			array(
-				'post_type'   => 'epx-badge',
-				'post_status' => 'any',
-				'numberposts' => -1,
-				'meta_key'    => '_epxb_preset',
-				'fields'      => 'ids',
-			)
-		);
-		$have     = array_map( function ( $id ) { return get_post_meta( $id, '_epxb_preset', true ); }, $existing );
 
-		foreach ( epxb_presets() as $key => $preset ) {
-			if ( in_array( $key, $have, true ) ) {
-				continue;
-			}
-			$id = wp_insert_post(
+		foreach ( $missing as $key ) {
+			$preset = epxb_presets()[ $key ];
+			$id     = wp_insert_post(
 				array(
 					'post_type'   => 'epx-badge',
 					'post_status' => 'draft',
@@ -64,26 +57,28 @@ add_action(
 				)
 			);
 			if ( $id && ! is_wp_error( $id ) ) {
-				update_post_meta( $id, '_epxb_preset', $key );
 				update_post_meta(
 					$id,
 					'_badge_settings',
-					epxb_clean_settings(
-						array_merge(
-							epxb_defaults(),
-							array(
-								'type'     => 'icon',
-								'icon'     => $key,
-								'text'     => $preset['label'],
-								'bg_color' => $preset['color'],
-								'position' => $preset['position'],
+					wp_slash(
+						epxb_clean_settings(
+							array_merge(
+								epxb_defaults(),
+								array(
+									'type'     => 'icon',
+									'icon'     => $key,
+									'text'     => $preset['label'],
+									'bg_color' => $preset['color'],
+									'position' => $preset['position'],
+								)
 							)
 						)
 					)
 				);
+				$done[] = $key;
 			}
 		}
-		update_option( 'epxb_seeded', EPXB_VERSION );
+		update_option( 'epxb_seeded', $done );
 	}
 );
 
