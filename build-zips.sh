@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")"
 mkdir -p dist
 
-for branch in velrion-backup velrion-admin velrion-images velrion-images-bulk velrion-review-request velrion-snippets velrion-dpd-pickup velrion-shop-manager epoxis-faq epoxis-gravirovani fx-badge custom-gallery; do
+for branch in velrion-backup velrion-admin velrion-images velrion-images-bulk velrion-review-request velrion-snippets velrion-dpd-pickup velrion-shop-manager epoxis-faq epoxis-gravirovani fx-badge epoxis-hardening custom-gallery; do
 	ref="$branch"
 	# V čerstvém klonu existuje větev jen jako origin/<větev>.
 	git rev-parse -q --verify "$ref" >/dev/null || ref="origin/$branch"

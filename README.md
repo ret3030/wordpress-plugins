@@ -15,6 +15,7 @@ Vlastní WordPress pluginy. Každý plugin má svou větev se soubory v kořeni,
 | `epoxis-faq` | Epoxis FAQ | 1.0.1 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-faq.zip) | FAQ pro epoxis.cz. |
 | `epoxis-gravirovani` | Epoxis gravírování | 1.2.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-gravirovani.zip) | Volitelné gravírování u vybraných produktů na epoxis.cz. |
 | `fx-badge` | Epoxis odznaky | 2.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/fx-badge.zip) | Odznaky na produktech: hotové ikony (ekologický výrobek, vyměnitelná žárovka, gravírování) nebo text, podle kategorií či produktů. Přepis pluginu FX Badge. |
+| `epoxis-hardening` | Epoxis Hardening | 1.0.0 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/epoxis-hardening.zip) | Zabezpečení WordPressu a WooCommerce: skrytí uživatelů, bezpečnostní hlavičky, XML-RPC, sitemap, robots.txt, security.txt. |
 | `custom-gallery` | Redakční galerie | 1.0.3 | [stáhnout](https://github.com/ret3030/wordpress-plugins/raw/main/dist/custom-gallery.zip) | Widget galerie pro Elementor, obsah se spravuje v Média → Galerie. |
 
 ## Instalace
